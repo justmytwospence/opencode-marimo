@@ -10,11 +10,10 @@ export interface View {
 }
 
 export function view(watcher: MarimoWatcher, now = Date.now()): View {
-  const { connection, attachment, candidates, mode } = watcher;
-  if (connection === "ambiguous") return { note: `${candidates.length} notebooks open` };
+  const { connection, attachment, mode } = watcher;
   if (!attachment) return {};
   if (connection === "searching") return mode.kind === "pinned" ? { note: `${attachment.path.split("/").pop()} not open` } : {};
-  return { parts: statusParts(watcher.notebook, attachment, connection, now) };
+  return { parts: statusParts(watcher.notebook, attachment, connection, now, watcher.others().length) };
 }
 
 /** The prompt line is narrow: keep the whole heading path only when short, else the deepest heading. */

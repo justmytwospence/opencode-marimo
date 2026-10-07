@@ -92,6 +92,9 @@ describe("render", () => {
       "marimo: nb.py · running Data loading › Slow model fit (12s) · 1 queued",
     );
     expect(statusText(statusParts(nb, attachment, "disconnected"))).toBe("marimo: nb.py · disconnected");
+    expect(statusText(statusParts(nb, attachment, "connected", since + 1000, 2))).toBe(
+      "marimo: nb.py · running Data loading › Slow model fit (1s) · 1 queued · +2 open",
+    );
   });
 
   test("snapshot outline", () => {
@@ -100,6 +103,15 @@ describe("render", () => {
     expect(text).toContain("## Slow model fit  [bkHC]");
     expect(text).toContain("  PKri: defines z -- ERROR ZeroDivisionError: division by zero");
     expect(text).toContain("Kernel: 1 cell with errors.");
+  });
+
+  test("stale on most cells is said once", () => {
+    const nb = new NotebookState();
+    nb.apply("kernel-ready", { cell_ids: ["a", "b", "c"], codes: ["a = 1", "b = a", "c = b"], names: [], configs: [] });
+    for (const id of ["a", "b"]) nb.apply("cell-op", { cell_id: id, stale_inputs: true });
+    const text = snapshot(nb, attachment);
+    expect(text).toContain("Kernel: 2 of 3 cells stale (inputs changed, not rerun).");
+    expect(text).not.toContain("-- stale");
   });
 
   test("large notebooks fold quiet cells", () => {

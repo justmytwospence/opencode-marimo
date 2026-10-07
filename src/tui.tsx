@@ -34,6 +34,7 @@ function Status(props: { api: TuiPluginApi; view: View }) {
             {" · "}
             <span style={{ fg: theme().error }}>{`${p()!.errors} error${p()!.errors === 1 ? "" : "s"}`}</span>
           </Show>
+          <Show when={p()!.others}>{` · +${p()!.others}`}</Show>
         </Show>
       </text>
     </Show>

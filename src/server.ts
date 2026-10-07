@@ -48,7 +48,7 @@ export const MarimoPlugin: Plugin = async ({ directory }) => {
       if (!watcher.attachment || watcher.connection !== "connected" || !watcher.notebook.ready) return;
       const messages = output.messages as unknown as Message[];
       if (messages.some((m) => m.parts.some((p) => typeof p.text === "string" && p.text.startsWith(`<${STATE_TAG}`)))) return;
-      appendState(messages, snapshot(watcher.notebook, watcher.attachment, { seenSeq }));
+      appendState(messages, snapshot(watcher.notebook, watcher.attachment, { seenSeq, others: watcher.others() }));
     },
   };
   return hooks;

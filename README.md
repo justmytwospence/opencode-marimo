@@ -28,10 +28,12 @@ marimo replays the session on connect, then streams the cell document, each cell
 and the dataflow graph. Outputs are dropped and nothing runs in the kernel. See pi-marimo's README for
 the details (browser edits, sessions sharing a file).
 
-The notebook is the one open under the project directory, found through marimo's server registry
-(servers started with `--no-token` register themselves). With several open there, the prompt line
-says so and the plugin waits: set `MARIMO_NOTEBOOK=/path/to/notebook.py` to choose one (or `off` to
-disable the plugin). Token-protected servers are reached with `MARIMO_TOKEN`.
+It follows every notebook open under the project directory (up to eight, leaving out hidden
+directories such as `.worktrees/`), found through marimo's server registry (servers started with
+`--no-token` register themselves). The current one, shown beside the prompt (`+2` counts the others)
+and in context, is the one used most recently: a running cell first, then the latest cell run or
+edit. Set `MARIMO_NOTEBOOK=/path/to/notebook.py` to pin one (or `off` to disable the plugin).
+Token-protected servers are reached with `MARIMO_TOKEN`.
 
 ## Install
 
