@@ -8,14 +8,15 @@ unchanged.
 - **Prompt line (TUI):** `marimo fit.py · 1 error`, and while a cell runs,
   `marimo ▸ Model fit 12s · 1 error`: the markdown section the running cell sits under (the whole
   heading path when it is short, else the deepest heading), so you can tell roughly what is running.
-- **Context (server):** before every model request, the notebook's current state is appended as the
-  last message: its outline (markdown headings), one line per code cell with what it defines, and
-  what needs attention (running, queued, errors, stale, edited but not rerun, changed by you in the
-  browser since the agent last went idle). The message is added in
-  `experimental.chat.messages.transform`, so it exists only in that request: the model only ever
-  sees the latest copy and old copies never pile up in the session. opencode marks the last two
-  messages as Anthropic cache breakpoints, so the conversation before the state block stays cached
-  and only the block itself (a few hundred tokens) is processed fresh.
+- **Context (server):** when you send a prompt, the notebook's state is taken once and placed
+  right after that prompt for every model request of the turn: its outline (markdown headings), one
+  line per code cell with what it defines, and what needs attention (running, queued, errors,
+  stale, edited but not rerun, changed by you in the browser since the agent last went idle). It is
+  added in `experimental.chat.messages.transform` and never stored, so old copies never pile up.
+  It does not change during the turn on purpose: Anthropic drops a thinking block when anything
+  before it changes, so a block refreshed on every request would cost the model its reasoning from
+  the previous step. At the next prompt the old copy goes, which drops that earlier turn's thinking
+  once and re-reads the turn after it uncached once.
 
 It pairs with the [marimo-pair](https://github.com/marimo-team/marimo-pair) skill, which is how the
 agent inspects and changes the notebook; this plugin only reads.

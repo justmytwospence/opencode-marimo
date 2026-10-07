@@ -1,19 +1,20 @@
 import { describe, expect, test } from "vitest";
 import { modeFromEnv } from "../src/mode.js";
-import { appendState } from "../src/server.js";
+import { insertState, turnOf } from "../src/server.js";
 import { shortSection } from "../src/status.js";
 
 describe("server", () => {
-  test("the state block is a synthetic user message after everything else", () => {
+  test("the state block is a synthetic user message right after the turn's prompt", () => {
     const user = { info: { id: "msg_1", sessionID: "ses_1", role: "user", agent: "build", model: { providerID: "anthropic", modelID: "m" }, time: { created: 1 } }, parts: [{ type: "text", text: "hi" }] };
     const assistant = { info: { id: "msg_2", sessionID: "ses_1", role: "assistant" }, parts: [{ type: "tool", state: { status: "completed" } }] };
     const messages = [user, assistant];
-    appendState(messages, "<marimo_notebook_state>…</marimo_notebook_state>");
+    expect(turnOf(messages)).toBe("msg_1");
+    insertState(messages, "<marimo_notebook_state>…</marimo_notebook_state>");
     expect(messages).toHaveLength(3);
-    const state = messages[2];
+    const state = messages[1]!;
     expect(state.info).toMatchObject({ id: "msg_1-marimo-state", role: "user", agent: "build", sessionID: "ses_1" });
     expect(state.parts[0]).toMatchObject({ type: "text", synthetic: true, messageID: "msg_1-marimo-state", text: "<marimo_notebook_state>…</marimo_notebook_state>" });
-    expect(user.info.id).toBe("msg_1");
+    expect(messages[2]).toBe(assistant);
   });
 
   test("MARIMO_NOTEBOOK pins or turns off", () => {

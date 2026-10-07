@@ -1,9 +1,10 @@
-// opencode-marimo (server): before every model request, append the current
-// state of the marimo notebook open under the project directory as the last
-// message. The message exists only in that request, never in the session, so
-// the model sees the latest copy and old copies never pile up. opencode marks
-// the last two messages as Anthropic cache breakpoints, so the conversation
-// before the state block stays cached.
+// opencode-marimo (server): the state of the marimo notebook open under the
+// project, taken when the user sends a prompt, sits right after that prompt for
+// every model request of the turn. It is added in the messages transform and
+// never stored, so old copies never pile up. It stays unchanged and in place
+// through the turn because Anthropic drops a thinking block when anything before
+// it changes; at the next prompt the old copy goes, dropping that earlier turn's
+// thinking once.
 //
 // The port of pi-marimo; src/core is shared with it unchanged.
 
@@ -15,15 +16,23 @@ import { modeFromEnv } from "./mode.js";
 
 type Message = { info: Record<string, any>; parts: Array<Record<string, any>> };
 
-/** Append the state block as a synthetic user message, modelled on the latest user message. */
-export function appendState(messages: Message[], text: string): void {
-  const last = [...messages].reverse().find((m) => m.info.role === "user");
-  if (!last) return;
-  const id = `${last.info.id}-marimo-state`;
-  messages.push({
-    info: { ...last.info, id, time: { created: Date.now() } },
-    parts: [{ id: `${id}-text`, sessionID: last.info.sessionID, messageID: id, type: "text", text, synthetic: true }],
+/** Insert the state block as a synthetic user message right after the latest user message (the turn's prompt). */
+export function insertState(messages: Message[], text: string): void {
+  let at = -1;
+  for (let i = messages.length - 1; i >= 0; i--) if (messages[i]?.info.role === "user") { at = i; break; }
+  if (at < 0) return;
+  const prompt = messages[at]!;
+  const id = `${prompt.info.id}-marimo-state`;
+  messages.splice(at + 1, 0, {
+    info: { ...prompt.info, id },
+    parts: [{ id: `${id}-text`, sessionID: prompt.info.sessionID, messageID: id, type: "text", text, synthetic: true }],
   });
+}
+
+/** The latest user message's id: the turn the state belongs to. */
+export function turnOf(messages: Message[]): string | undefined {
+  for (let i = messages.length - 1; i >= 0; i--) if (messages[i]?.info.role === "user") return messages[i]!.info.id as string;
+  return undefined;
 }
 
 export const MarimoPlugin: Plugin = async ({ directory }) => {
@@ -31,6 +40,8 @@ export const MarimoPlugin: Plugin = async ({ directory }) => {
   watcher.mode = modeFromEnv();
   watcher.start();
   let seenSeq = 0;
+  // The state taken for the current turn, keyed by the prompt's message id.
+  let turn: { prompt: string; text: string } | undefined;
 
   const hooks: Hooks = {
     dispose: async () => {
@@ -45,10 +56,16 @@ export const MarimoPlugin: Plugin = async ({ directory }) => {
       await watcher.settle(2000);
     },
     "experimental.chat.messages.transform": async (_input, output) => {
-      if (!watcher.attachment || watcher.connection !== "connected" || !watcher.notebook.ready) return;
       const messages = output.messages as unknown as Message[];
       if (messages.some((m) => m.parts.some((p) => typeof p.text === "string" && p.text.startsWith(`<${STATE_TAG}`)))) return;
-      appendState(messages, snapshot(watcher.notebook, watcher.attachment, { seenSeq, others: watcher.others() }));
+      const prompt = turnOf(messages);
+      if (!prompt) return;
+      if (turn?.prompt !== prompt) {
+        // A new turn: take the state now, once.
+        const ready = watcher.attachment && watcher.connection === "connected" && watcher.notebook.ready;
+        turn = { prompt, text: ready ? snapshot(watcher.notebook, watcher.attachment!, { seenSeq, others: watcher.others(), refresh: "prompt" }) : "" };
+      }
+      if (turn.text) insertState(messages, turn.text);
     },
   };
   return hooks;
