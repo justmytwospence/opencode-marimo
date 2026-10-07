@@ -1,0 +1,30 @@
+import { describe, expect, test } from "vitest";
+import { modeFromEnv } from "../src/mode.js";
+import { appendState } from "../src/server.js";
+import { shortSection } from "../src/status.js";
+
+describe("server", () => {
+  test("the state block is a synthetic user message after everything else", () => {
+    const user = { info: { id: "msg_1", sessionID: "ses_1", role: "user", agent: "build", model: { providerID: "anthropic", modelID: "m" }, time: { created: 1 } }, parts: [{ type: "text", text: "hi" }] };
+    const assistant = { info: { id: "msg_2", sessionID: "ses_1", role: "assistant" }, parts: [{ type: "tool", state: { status: "completed" } }] };
+    const messages = [user, assistant];
+    appendState(messages, "<marimo_notebook_state>…</marimo_notebook_state>");
+    expect(messages).toHaveLength(3);
+    const state = messages[2];
+    expect(state.info).toMatchObject({ id: "msg_1-marimo-state", role: "user", agent: "build", sessionID: "ses_1" });
+    expect(state.parts[0]).toMatchObject({ type: "text", synthetic: true, messageID: "msg_1-marimo-state", text: "<marimo_notebook_state>…</marimo_notebook_state>" });
+    expect(user.info.id).toBe("msg_1");
+  });
+
+  test("MARIMO_NOTEBOOK pins or turns off", () => {
+    expect(modeFromEnv({})).toEqual({ kind: "auto" });
+    expect(modeFromEnv({ MARIMO_NOTEBOOK: "/a/b.py" })).toEqual({ kind: "pinned", path: "/a/b.py" });
+    expect(modeFromEnv({ MARIMO_NOTEBOOK: "off" })).toEqual({ kind: "off" });
+  });
+});
+
+test("the prompt line keeps the whole heading path only when short", () => {
+  expect(shortSection("Data › Fit")).toBe("Data › Fit");
+  expect(shortSection("Data loading › Slow model fit")).toBe("Slow model fit");
+  expect(shortSection("A › An extremely long heading that goes on")).toBe("An extremely long hea…");
+});
