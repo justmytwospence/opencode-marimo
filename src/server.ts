@@ -9,6 +9,7 @@
 
 import type { Hooks, Plugin } from "@opencode-ai/plugin";
 import { snapshot, STATE_TAG } from "./core/render.js";
+import { nodeIo } from "./core/node-io.js";
 import { MarimoWatcher } from "./core/watcher.js";
 import { modeFromEnv } from "./mode.js";
 
@@ -26,7 +27,7 @@ export function appendState(messages: Message[], text: string): void {
 }
 
 export const MarimoPlugin: Plugin = async ({ directory }) => {
-  const watcher = new MarimoWatcher({ cwd: directory, token: process.env.MARIMO_TOKEN, onChange: () => {} });
+  const watcher = new MarimoWatcher({ io: nodeIo(), cwd: directory, token: process.env.MARIMO_TOKEN, onChange: () => {} });
   watcher.mode = modeFromEnv();
   watcher.start();
   let seenSeq = 0;

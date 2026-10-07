@@ -4,6 +4,7 @@
 
 import type { TuiPlugin, TuiPluginApi } from "@opencode-ai/plugin/tui";
 import { createSignal, Show } from "solid-js";
+import { nodeIo } from "./core/node-io.js";
 import { MarimoWatcher } from "./core/watcher.js";
 import { modeFromEnv } from "./mode.js";
 import { shortSection, type View, view } from "./status.js";
@@ -43,6 +44,7 @@ const tui: TuiPlugin = async (api) => {
   const [current, setCurrent] = createSignal<View>({});
   let ticker: ReturnType<typeof setInterval> | undefined;
   const watcher: MarimoWatcher = new MarimoWatcher({
+    io: nodeIo(),
     cwd: api.state.path.directory || process.cwd(),
     token: process.env.MARIMO_TOKEN,
     onChange: () => update(),

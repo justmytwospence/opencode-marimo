@@ -4,7 +4,7 @@ import { headingsFromCode, isMarkdownCell, mdLiterals } from "../src/core/markdo
 import { NotebookState } from "../src/core/notebook.js";
 import { snapshot, statusParts, statusText } from "../src/core/render.js";
 import { SseParser } from "../src/core/sse.js";
-import { within } from "../src/core/watcher.js";
+import { normalize, within } from "../src/core/io.js";
 
 const attachment = { url: "http://127.0.0.1:2799", sessionId: "s1", path: "/tmp/pmt/nb.py" };
 
@@ -112,7 +112,9 @@ describe("render", () => {
   });
 });
 
-test("within", () => {
+test("paths", () => {
   expect(within("/a/b/c.py", "/a")).toBe(true);
+  expect(within("/a/b/c.py", "/a/")).toBe(true);
   expect(within("/ab/c.py", "/a")).toBe(false);
+  expect(normalize("../x/./y.py", "/a/b")).toBe("/a/x/y.py");
 });
