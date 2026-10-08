@@ -60,3 +60,32 @@ export function line<Color>(
     },
   });
 }
+
+/** Several such lines stacked, shown while `lines()` is defined (the sidebar's list). */
+export function block<Color>(
+  host: { solid: Solid; jsx: JsxRuntime["jsx"] },
+  fg: () => Color,
+  lines: () => Segment<Color>[][] | undefined,
+) {
+  const { solid, jsx } = host;
+  return jsx(solid.Show as never, {
+    get when() {
+      return lines() !== undefined;
+    },
+    get children() {
+      return jsx("box", {
+        flexDirection: "column",
+        children: () =>
+          (lines() ?? []).map((segments) =>
+            jsx("text", {
+              get fg() {
+                return fg();
+              },
+              wrapMode: "none",
+              children: segments.map((s) => (s.color === undefined ? s.text : jsx("span", { style: { fg: s.color }, children: s.text }))),
+            }),
+          ),
+      });
+    },
+  });
+}

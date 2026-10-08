@@ -12,8 +12,8 @@ export interface View {
 export function view(watcher: MarimoWatcher, now = Date.now()): View {
   const { connection, attachment, mode } = watcher;
   if (!attachment) return {};
-  if (connection === "searching") return mode.kind === "pinned" ? { note: `${attachment.path.split("/").pop()} not open` } : {};
-  return { parts: statusParts(watcher.notebook, attachment, connection, now, watcher.others().length) };
+  if (connection === "searching") return mode.kind === "pinned" ? { note: `${mode.paths.map((p) => p.split("/").pop()).join(", ")} not open` } : {};
+  return { parts: statusParts(watcher.notebook, attachment, connection, now, watcher.others()) };
 }
 
 /** The prompt line is narrow: keep the whole heading path only when short, else the deepest heading. */
@@ -47,6 +47,28 @@ export function segments(v: View): Segment[] | undefined {
   }
   if (p.connection !== "connected") out.push({ text: " · " }, { text: p.connection, color: "warning" });
   if (p.errors) out.push({ text: " · " }, { text: `${p.errors} error${p.errors === 1 ? "" : "s"}`, color: "error" });
-  if (p.others) out.push({ text: ` · +${p.others}` });
+  if (p.others?.length) out.push({ text: ` · +${p.others.length}` });
   return out;
+}
+
+/**
+ * The sidebar's list: every followed notebook on its own line, the current one first and marked,
+ * with what its kernel is doing; the others by name.
+ */
+export function sidebarLines(watcher: MarimoWatcher, now = Date.now()): Segment[][] | undefined {
+  const followed = watcher.followed();
+  if (!followed.length) return undefined;
+  return [
+    [{ text: "marimo", color: "accent" }],
+    ...followed.map((f): Segment[] => {
+      const name = f.attachment.path.split("/").pop() ?? f.attachment.path;
+      if (!f.current) return [{ text: `  ${name}` }];
+      const p = statusParts(f.notebook, f.attachment, f.connection, now);
+      const line: Segment[] = [{ text: "▸ ", color: "warning" }, { text: name, color: "accent" }];
+      if (p.connection !== "connected") line.push({ text: ` ${p.connection}`, color: "warning" });
+      if (p.running) line.push({ text: ` · running ${shortSection(p.running.section, 18) || `cell ${p.running.cell}`}${p.running.elapsed ? ` ${p.running.elapsed}` : ""}` });
+      if (p.errors) line.push({ text: " · " }, { text: `${p.errors} error${p.errors === 1 ? "" : "s"}`, color: "error" });
+      return line;
+    }),
+  ];
 }

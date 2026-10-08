@@ -19,7 +19,8 @@ describe("server", () => {
 
   test("MARIMO_NOTEBOOK pins or turns off", () => {
     expect(modeFromEnv({})).toEqual({ kind: "auto" });
-    expect(modeFromEnv({ MARIMO_NOTEBOOK: "/a/b.py" })).toEqual({ kind: "pinned", path: "/a/b.py" });
+    expect(modeFromEnv({ MARIMO_NOTEBOOK: "/a/b.py" })).toEqual({ kind: "pinned", paths: ["/a/b.py"] });
+    expect(modeFromEnv({ MARIMO_NOTEBOOK: "/a/b.py, /c.py" })).toEqual({ kind: "pinned", paths: ["/a/b.py", "/c.py"] });
     expect(modeFromEnv({ MARIMO_NOTEBOOK: "off" })).toEqual({ kind: "off" });
   });
 });
@@ -36,7 +37,7 @@ test("status line segments", () => {
   expect(segments({ note: "fit.py not open" })).toEqual([{ text: "marimo " }, { text: "fit.py not open", color: "warning" }]);
   expect(segments({ parts })).toEqual([{ text: "marimo " }, { text: "fit.py", color: "accent" }]);
   expect(
-    segments({ parts: { ...parts, connection: "connecting", errors: 2, others: 1, running: { section: "Data › Fit", cell: "c1", elapsed: "12s" } } }),
+    segments({ parts: { ...parts, connection: "connecting", errors: 2, others: ["prep.py"], running: { section: "Data › Fit", cell: "c1", elapsed: "12s" } } }),
   ).toEqual([
     { text: "marimo " },
     { text: "▸ ", color: "warning" },
@@ -47,4 +48,25 @@ test("status line segments", () => {
     { text: "2 errors", color: "error" },
     { text: " · +1" },
   ]);
+});
+
+test("the sidebar names every followed notebook, details for the current one", async () => {
+  const { NotebookState } = await import("../src/core/notebook.js");
+  const { sidebarLines } = await import("../src/status.js");
+  const nb = new NotebookState();
+  nb.apply("kernel-ready", { cell_ids: ["m", "c"], codes: ['mo.md("# Fit")', "y = 1"], names: [], configs: [] });
+  nb.apply("cell-op", { cell_id: "c", status: "running", timestamp: 100 });
+  const at = (path: string) => ({ url: "u", sessionId: "s", path });
+  const watcher = {
+    followed: () => [
+      { attachment: at("/w/fit.py"), notebook: nb, connection: "connected", current: true },
+      { attachment: at("/w/prep.py"), notebook: new NotebookState(), connection: "connected", current: false },
+    ],
+  } as any;
+  expect(sidebarLines(watcher, 112_000)).toEqual([
+    [{ text: "marimo", color: "accent" }],
+    [{ text: "▸ ", color: "warning" }, { text: "fit.py", color: "accent" }, { text: " · running Fit 12s" }],
+    [{ text: "  prep.py" }],
+  ]);
+  expect(sidebarLines({ followed: () => [] } as any)).toBeUndefined();
 });

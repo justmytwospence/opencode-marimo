@@ -39,7 +39,8 @@ export const MarimoPlugin: Plugin = async ({ directory }) => {
   const watcher = new MarimoWatcher({ io: nodeIo(), cwd: directory, token: process.env.MARIMO_TOKEN, onChange: () => {} });
   watcher.mode = modeFromEnv();
   watcher.start();
-  let seenSeq = 0;
+  // Per notebook path: browser edits after this change number are flagged as new.
+  const seen = new Map<string, number>();
   // The state taken for the current turn, keyed by the prompt's message id.
   let turn: { prompt: string; text: string } | undefined;
 
@@ -49,7 +50,7 @@ export const MarimoPlugin: Plugin = async ({ directory }) => {
     },
     event: async ({ event }) => {
       // Browser edits made after the agent finished are flagged as new next time.
-      if (event.type === "session.idle") seenSeq = watcher.notebook.seq;
+      if (event.type === "session.idle") for (const f of watcher.followed()) seen.set(f.attachment.path, f.notebook.seq);
     },
     "chat.message": async () => {
       watcher.refresh();
@@ -62,8 +63,10 @@ export const MarimoPlugin: Plugin = async ({ directory }) => {
       if (!prompt) return;
       if (turn?.prompt !== prompt) {
         // A new turn: take the state now, once.
-        const ready = watcher.attachment && watcher.connection === "connected" && watcher.notebook.ready;
-        turn = { prompt, text: ready ? snapshot(watcher.notebook, watcher.attachment!, { seenSeq, others: watcher.others(), refresh: "prompt" }) : "" };
+        const entries = watcher.followed()
+          .filter((f) => f.connection === "connected" && f.notebook.ready)
+          .map((f) => ({ notebook: f.notebook, attachment: f.attachment, current: f.current, seenSeq: seen.get(f.attachment.path) ?? 0 }));
+        turn = { prompt, text: entries.length ? snapshot(entries, { refresh: "prompt" }) : "" };
       }
       if (turn.text) insertState(messages, turn.text);
     },

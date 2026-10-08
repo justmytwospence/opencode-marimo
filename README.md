@@ -1,17 +1,23 @@
 # opencode-marimo
 
-An [opencode](https://opencode.ai) plugin that follows the [marimo](https://marimo.io) notebook open
-under your project, so the agent knows what it looks like and what it is doing without being asked.
+An [opencode](https://opencode.ai) plugin that follows the [marimo](https://marimo.io) notebooks open
+under your project, so the agent knows what they look like and what they are doing without being
+asked.
 The port of [pi-marimo](https://github.com/justmytwospence/pi-marimo); `src/core` is shared with it
 unchanged.
 
-- **Prompt line (TUI):** `marimo fit.py · 1 error`, and while a cell runs,
-  `marimo ▸ Model fit 12s · 1 error`: the markdown section the running cell sits under (the whole
-  heading path when it is short, else the deepest heading), so you can tell roughly what is running.
-- **Context (server):** when you send a prompt, the notebook's state is taken once and placed
-  right after that prompt for every model request of the turn: its outline (markdown headings), one
-  line per code cell with what it defines, and what needs attention (running, queued, errors,
-  stale, edited but not rerun, changed by you in the browser since the agent last went idle). It is
+- **Prompt line (TUI):** the current notebook (the one used most recently), `marimo fit.py · 1 error
+  · +2`, and while a cell runs `marimo ▸ Model fit 12s · 1 error · +2`: the markdown section the
+  running cell sits under (the whole heading path when it is short, else the deepest heading), so
+  you can tell roughly what is running; `+2` counts the other notebooks followed.
+- **Sidebar (TUI):** every followed notebook by name, the current one first and marked, with what
+  its kernel is doing.
+- **Context (server):** when you send a prompt, the state of every followed notebook is taken once
+  and placed right after that prompt for every model request of the turn. The current notebook comes
+  first and in full: its outline (markdown headings), one line per code cell with what it defines,
+  and what needs attention (running, queued, errors, stale, edited but not rerun, changed by you in
+  the browser since the agent last went idle); the others follow as short outlines with only the
+  cells that need attention. It is
   added in `experimental.chat.messages.transform` and never stored, so old copies never pile up.
   It does not change during the turn on purpose: Anthropic drops a thinking block when anything
   before it changes, so a block refreshed on every request would cost the model its reasoning from
@@ -31,9 +37,9 @@ the details (browser edits, sessions sharing a file).
 
 It follows every notebook open under the project directory (up to eight, leaving out hidden
 directories such as `.worktrees/`), found through marimo's server registry (servers started with
-`--no-token` register themselves). The current one, shown beside the prompt (`+2` counts the others)
-and in context, is the one used most recently: a running cell first, then the latest cell run or
-edit. Set `MARIMO_NOTEBOOK=/path/to/notebook.py` to pin one (or `off` to disable the plugin).
+`--no-token` register themselves). The current one is the one used most recently: a running cell
+first, then the latest cell run or edit. Set `MARIMO_NOTEBOOK=/path/a.py,/path/b.py` to pin a set
+instead (or `off` to disable the plugin).
 Token-protected servers are reached with `MARIMO_TOKEN`.
 
 ## Install
