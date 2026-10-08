@@ -24,6 +24,12 @@ unchanged.
   the previous step. At the next prompt the old copy goes, which drops that earlier turn's thinking
   once and re-reads the turn after it uncached once.
 
+- **herdr (TUI):** when a turn ends while a cell the agent started is still running, the pane token
+  `marimo` says what runs (`fit.py: Model fit`) until the kernel goes quiet, then a herdr
+  notification says it finished, with the done sound unless the pane is focused. Add `$marimo` to a
+  row in `[ui.sidebar.agents]` to show the token. The pane's state stays `idle`: herdr's opencode
+  integration is the sole authority over it. See pi-marimo's README.
+
 It pairs with the [marimo-pair](https://github.com/marimo-team/marimo-pair) skill, which is how the
 agent inspects and changes the notebook; this plugin only reads.
 
