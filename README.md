@@ -48,8 +48,9 @@ The server and TUI halves are two exports of one package. Pin the same commit in
 "plugin": ["opencode-marimo@github:justmytwospence/opencode-marimo#<commit>"]
 ```
 
-opencode compiles `src/tui.tsx` (Solid JSX) itself, so there is no build step. Tested with
-opencode 1.18.29.
+There is no build step: `src/tui.ts` is plain TypeScript that takes Solid from opencode itself
+(`src/host.ts`), since opencode does not compile JSX inside a git install. Tested with opencode
+1.18.29.
 
 ## Development
 

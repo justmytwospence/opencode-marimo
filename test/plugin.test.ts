@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { modeFromEnv } from "../src/mode.js";
 import { insertState, turnOf } from "../src/server.js";
-import { shortSection } from "../src/status.js";
+import { segments, shortSection } from "../src/status.js";
 
 describe("server", () => {
   test("the state block is a synthetic user message right after the turn's prompt", () => {
@@ -28,4 +28,23 @@ test("the prompt line keeps the whole heading path only when short", () => {
   expect(shortSection("Data › Fit")).toBe("Data › Fit");
   expect(shortSection("Data loading › Slow model fit")).toBe("Slow model fit");
   expect(shortSection("A › An extremely long heading that goes on")).toBe("An extremely long hea…");
+});
+
+test("status line segments", () => {
+  const parts = { notebook: "fit.py", connection: "connected", queued: 0, errors: 0 };
+  expect(segments({})).toBeUndefined();
+  expect(segments({ note: "fit.py not open" })).toEqual([{ text: "marimo " }, { text: "fit.py not open", color: "warning" }]);
+  expect(segments({ parts })).toEqual([{ text: "marimo " }, { text: "fit.py", color: "accent" }]);
+  expect(
+    segments({ parts: { ...parts, connection: "connecting", errors: 2, others: 1, running: { section: "Data › Fit", cell: "c1", elapsed: "12s" } } }),
+  ).toEqual([
+    { text: "marimo " },
+    { text: "▸ ", color: "warning" },
+    { text: "Data › Fit 12s" },
+    { text: " · " },
+    { text: "connecting", color: "warning" },
+    { text: " · " },
+    { text: "2 errors", color: "error" },
+    { text: " · +1" },
+  ]);
 });

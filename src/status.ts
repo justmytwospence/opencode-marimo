@@ -22,3 +22,31 @@ export function shortSection(section: string, max = 22): string {
   const deepest = section.split(" › ").pop() ?? section;
   return deepest.length <= max ? deepest : `${deepest.slice(0, max - 1)}…`;
 }
+
+/** A run of text in the status line; `color` names a theme color, or the line's own when absent. */
+export interface Segment {
+  text: string;
+  color?: "warning" | "accent" | "error";
+}
+
+/**
+ * The line beside the prompt, short because the agent and model labels share it:
+ * `marimo fit.py · 1 error`, or while a cell runs `marimo ▸ Model fit 12s · 1 error`.
+ * Undefined shows nothing.
+ */
+export function segments(v: View): Segment[] | undefined {
+  const p = v.parts;
+  if (!p) return v.note ? [{ text: "marimo " }, { text: v.note, color: "warning" }] : undefined;
+  const out: Segment[] = [{ text: "marimo " }];
+  if (p.running) {
+    out.push({ text: "▸ ", color: "warning" });
+    const section = shortSection(p.running.section) || `cell ${p.running.cell}`;
+    out.push({ text: `${section}${p.running.elapsed ? ` ${p.running.elapsed}` : ""}` });
+  } else {
+    out.push({ text: p.notebook, color: "accent" });
+  }
+  if (p.connection !== "connected") out.push({ text: " · " }, { text: p.connection, color: "warning" });
+  if (p.errors) out.push({ text: " · " }, { text: `${p.errors} error${p.errors === 1 ? "" : "s"}`, color: "error" });
+  if (p.others) out.push({ text: ` · +${p.others}` });
+  return out;
+}
