@@ -5,6 +5,7 @@
 
 import type { TuiPlugin } from "@opencode-ai/plugin/tui";
 import { nodeIo } from "./core/node-io.js";
+import { pairTargets } from "./core/touch.js";
 import { MarimoWatcher } from "./core/watcher.js";
 import { block, line, loadHost } from "./host.js";
 import { modeFromEnv } from "./mode.js";
@@ -30,7 +31,16 @@ const tui: TuiPlugin = async (api) => {
   };
   watcher.mode = modeFromEnv();
   watcher.start();
+  // The TUI runs apart from the server half, so it reads the agent's marimo-pair calls from the
+  // session's tool parts to keep the same notebook current.
+  const unsubscribe = api.event.on("message.part.updated", (event) => {
+    const part = event.properties.part as { type?: string; state?: { status?: string; input?: unknown } };
+    if (part.type !== "tool" || part.state?.status !== "running") return;
+    const targets = pairTargets(JSON.stringify(part.state.input ?? {}));
+    if (targets.length) watcher.touch(targets);
+  });
   api.lifecycle.onDispose(async () => {
+    unsubscribe();
     if (ticker) clearInterval(ticker);
     await watcher.stop();
   });

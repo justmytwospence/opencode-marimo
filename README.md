@@ -37,8 +37,11 @@ the details (browser edits, sessions sharing a file).
 
 It follows every notebook open under the project directory (up to eight, leaving out hidden
 directories such as `.worktrees/`), found through marimo's server registry (servers started with
-`--no-token` register themselves). The current one is the one used most recently: a running cell
-first, then the latest cell run or edit. Set `MARIMO_NOTEBOOK=/path/a.py,/path/b.py` to pin a set
+`--no-token` register themselves). The current one is the one the agent last worked in, read from
+its marimo-pair calls (`--file`, `--session`, or `--url` when only one followed notebook is on that
+server), so two opencode sessions in two notebooks each keep their own. Before the agent has
+touched any, it is the one used most recently by anyone: a running cell first, then the latest cell
+run or edit. Set `MARIMO_NOTEBOOK=/path/a.py,/path/b.py` to pin a set
 instead (or `off` to disable the plugin).
 Token-protected servers are reached with `MARIMO_TOKEN`.
 

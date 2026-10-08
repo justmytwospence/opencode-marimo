@@ -11,6 +11,7 @@
 import type { Hooks, Plugin } from "@opencode-ai/plugin";
 import { snapshot, STATE_TAG } from "./core/render.js";
 import { nodeIo } from "./core/node-io.js";
+import { pairTargets } from "./core/touch.js";
 import { MarimoWatcher } from "./core/watcher.js";
 import { modeFromEnv } from "./mode.js";
 
@@ -51,6 +52,12 @@ export const MarimoPlugin: Plugin = async ({ directory }) => {
     event: async ({ event }) => {
       // Browser edits made after the agent finished are flagged as new next time.
       if (event.type === "session.idle") for (const f of watcher.followed()) seen.set(f.attachment.path, f.notebook.seq);
+    },
+    // The notebook this session's agent works in (through marimo-pair) becomes current for it,
+    // whatever other sessions or the browser do.
+    "tool.execute.before": async (_input, output) => {
+      const targets = pairTargets(JSON.stringify(output.args ?? {}));
+      if (targets.length) watcher.touch(targets);
     },
     "chat.message": async () => {
       watcher.refresh();
