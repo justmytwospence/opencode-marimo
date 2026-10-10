@@ -1,5 +1,5 @@
 // Shows the kernel hold (core/hold.ts) in herdr for the pane this process runs in. Node-only,
-// shared verbatim by pi-marimo and opencode-marimo (claude-marimo goes through the `herdr` CLI).
+// opencode-marimo only (pi-marimo goes through pi-herdr's event bus; claude-marimo through the `herdr` CLI).
 // Outside herdr (no HERDR_ENV / socket / pane) it does nothing.
 //
 // herdr's pi and opencode integrations are the sole authority over the pane's idle/working state,
