@@ -1,3 +1,5 @@
+> **Retired.** This plugin now lives in [opencode-plugins](https://github.com/justmytwospence/opencode-plugins/tree/main/packages/opencode-marimo), ported to OpenCode 2. This repository is archived for history; do not install it alongside the suite.
+
 # opencode-marimo
 
 An [opencode](https://opencode.ai) plugin that follows the [marimo](https://marimo.io) notebooks open
